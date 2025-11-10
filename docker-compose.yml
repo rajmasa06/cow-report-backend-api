@@ -1,0 +1,66 @@
+version: "3.8"
+services:
+  mysqldb:
+    image: mysql:8.0.13
+    container_name: mysqldb
+    environment:
+      MYSQL_ROOT_PASSWORD: raj@123
+      MYSQL_DATABASE: cowdb
+    ports:
+      - "3306:3306"
+    networks:
+      - spring-network
+
+  cow-report-backend:
+    build: .
+    container_name: cow-report-backend
+    ports:
+      - "8081:8080"
+    environment:
+      DB_URL: jdbc:mysql://mysqldb:3306/cowdb
+      DB_USER: root
+      DB_PASSWORD: raj@123
+    depends_on:
+      - mysqldb
+    networks:
+      - spring-network
+
+networks:
+  spring-network:
+    driver: bridge
+
+
+
+
+#version: '3.8'
+#
+#services:
+#  mysqldb:
+#    image: mysql:8.0.13
+#    container_name: mysqldb
+#    restart: always
+#    environment:
+#      MYSQL_ROOT_PASSWORD: raj@123
+#      MYSQL_DATABASE: cowdb
+#    ports:
+#      - "3307:3306"
+#    volumes:
+#      - db_data:/var/lib/mysql
+#
+#  cow-report-backend:
+#    build: .
+#    container_name: cow-report-backend
+#    restart: always
+#    depends_on:
+#      - mysqldb
+#    environment:
+#      DB_URL: jdbc:mysql://mysqldb:3306/cowdb
+#      DB_USER: root
+#      DB_PASSWORD: raj@123
+#    ports:
+#      - "8080:8080"
+#    # Wait for MySQL before starting (optional but helpful)
+#    command: ["sh", "-c", "sleep 15 && java -jar /app.jar"]
+#
+#volumes:
+#  db_data:
