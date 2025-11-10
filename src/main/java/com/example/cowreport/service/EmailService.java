@@ -21,7 +21,7 @@ public class EmailService {
     @Value("${app.server.base-url:http://localhost:8080}")
     private String serverBaseUrl;
 
-    // ✅ Verified recipient email in Mailgun sandbox
+    // ✅ Verified recipient email (sandbox mode me ye email Mailgun dashboard me verify hona chahiye)
     private static final String VERIFIED_EMAIL = "rajmasa06@gmail.com";
 
     public EmailService(WebClient.Builder webClientBuilder) {
@@ -30,44 +30,60 @@ public class EmailService {
 
     public void sendReportAlert(CowReport report) {
         try {
-            String subject = "🚨 URGENT: New Cow Report - ID: " + report.getId();
+            // ✉️ Subject line
+            String subject = "🐄 Cow Report Submitted by " + report.getUserName();
 
-            // Generate action and image URLs
+            // 🔗 Action link (to update status)
             String actionLink = serverBaseUrl + "/api/cow/status/update/" + report.getId();
+
+            // 🖼 Full image URL (if local path then convert to full URL)
             String fullImageUrl = report.getImageUrl().startsWith("http")
                     ? report.getImageUrl()
                     : serverBaseUrl + report.getImageUrl();
 
-            // Build email body
-            String emailBody = String.format(
-                    "Dear Rajmasa,\n\n"
-                            + "A new cow report has been submitted.\n\n"
-                            + "--- REPORT DETAILS ---\n"
-                            + "Report ID: %s\n"
-                            + "Submitted By: %s\n"
-                            + "User Contact: %s\n"
-                            + "Location: %s\n"
-                            + "Image Link: %s\n\n"
-                            + "--- ACTION REQUIRED ---\n"
-                            + "After cleaning, please click below to mark this report as DONE:\n"
-                            + "%s\n\n"
-                            + "Regards,\nCow Report System",
-                    report.getId(),
-                    report.getUserName(),
-                    report.getUserEmail(),
-                    report.getCurrentLocation(),
-                    fullImageUrl,
-                    actionLink);
+            // 🌈 HTML Email Content
+            String htmlMessage = """
+            <html>
+              <body style='font-family: Arial, sans-serif; background-color:#f9f9f9; padding:20px;'>
+                <div style='background-color:#fff; border-radius:10px; padding:20px; max-width:600px; margin:auto; box-shadow:0 0 10px rgba(0,0,0,0.1);'>
+                  <h2 style='color:#2e6c80;'>🐄 New Cow Report Received!</h2>
+                  <p>Dear <b>%s</b>,</p>
+                  <p>Your cow report has been successfully submitted to the system.</p>
 
-            // ✅ Correct Mailgun API Call using form data
+                  <p><b>Report ID:</b> %s</p>
+                  <p><b>Location:</b> %s</p>
+                  <p><b>Reporter Email:</b> %s</p>
+
+                  <div style='text-align:center; margin:20px 0;'>
+                    <img src="%s" alt="Cow Image" style="max-width:100%%; border-radius:10px;"/>
+                  </div>
+
+                  <div style='text-align:center;'>
+                    <a href="%s" style="background:#4CAF50; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">View Report</a>
+                  </div>
+
+                  <p style='margin-top:20px; color:#555;'>Regards,<br>Cow Report System</p>
+                </div>
+              </body>
+            </html>
+            """.formatted(
+                    report.getUserName(),
+                    report.getId(),
+                    report.getCurrentLocation(),
+                    report.getUserEmail(),
+                    fullImageUrl,
+                    actionLink
+            );
+
+            // 🚀 Mailgun API Call
             webClient.post()
                     .uri("https://api.mailgun.net/v3/" + mailgunDomain + "/messages")
                     .headers(headers -> headers.setBasicAuth("api", mailgunApiKey))
                     .body(BodyInserters
-                            .fromFormData("from", "Mailgun Sandbox <postmaster@" + mailgunDomain + ">")
+                            .fromFormData("from", "Cow Report System <postmaster@" + mailgunDomain + ">")
                             .with("to", VERIFIED_EMAIL)
                             .with("subject", subject)
-                            .with("text", emailBody))
+                            .with("html", htmlMessage)) // ✅ HTML body
                     .retrieve()
                     .bodyToMono(String.class)
                     .doOnNext(response -> System.out.println("✅ Mailgun Response: " + response))
@@ -78,6 +94,7 @@ public class EmailService {
                     .subscribe();
 
             System.out.println("✅ Mailgun email sent successfully to verified address.");
+
         } catch (Exception e) {
             System.err.println("❌ Error preparing email: " + e.getMessage());
         }
