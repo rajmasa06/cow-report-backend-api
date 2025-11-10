@@ -20,7 +20,7 @@ public class EmailService {
     @Value("${app.server.base-url:http://localhost:8080}")
     private String serverBaseUrl;
 
-    private static final String RAJMASA_EMAIL = "rajmasa06@gmail.com";
+    private static final String VERIFIED_EMAIL = "rajmasa06@gmail.com"; // ✅ verified recipient in Mailgun
 
     public EmailService(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder.baseUrl("https://api.mailgun.net/v3").build();
@@ -30,13 +30,11 @@ public class EmailService {
         try {
             String subject = "🚨 URGENT: New Cow Report - ID: " + report.getId();
 
-            // Image URL & action link
             String actionLink = serverBaseUrl + "/api/cow/status/update/" + report.getId();
             String fullImageUrl = report.getImageUrl().startsWith("http")
                     ? report.getImageUrl()
                     : serverBaseUrl + report.getImageUrl();
 
-            // Mail Body
             String emailBody = String.format(
                     "Dear Rajmasa,\n\n"
                             + "A new cow report has been submitted.\n\n"
@@ -57,23 +55,23 @@ public class EmailService {
                     fullImageUrl,
                     actionLink);
 
-            // Send Email via Mailgun API
             webClient.post()
                     .uri("https://api.mailgun.net/v3/" + mailgunDomain + "/messages")
                     .headers(headers -> headers.setBasicAuth("api", mailgunApiKey))
-                    .bodyValue("from=Cow Report System <mailgun@" + mailgunDomain + ">"
-                            + "&to=" + RAJMASA_EMAIL
+                    .bodyValue("from=Mailgun Sandbox <postmaster@" + mailgunDomain + ">"
+                            + "&to=" + VERIFIED_EMAIL
                             + "&subject=" + subject
                             + "&text=" + emailBody)
                     .retrieve()
                     .bodyToMono(String.class)
+                    .doOnNext(response -> System.out.println("✅ Mailgun Response: " + response))
                     .onErrorResume(e -> {
                         System.err.println("❌ Mail sending failed: " + e.getMessage());
                         return Mono.empty();
                     })
                     .subscribe();
 
-            System.out.println("✅ Mailgun email sent successfully to Rajmasa.");
+            System.out.println("✅ Mailgun email sent successfully to verified address.");
         } catch (Exception e) {
             System.err.println("❌ Error preparing email: " + e.getMessage());
         }
