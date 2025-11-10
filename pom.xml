@@ -61,7 +61,15 @@
             <artifactId>lombok</artifactId>
             <version>1.18.32</version>
             <scope>provided</scope>
-        </dependency>
+        </dependency> 
+        
+        <!--   IMAGE CLOUD       -->
+        <dependency>
+    <groupId>com.cloudinary</groupId>
+    <artifactId>cloudinary-http44</artifactId>
+    <version>1.34.0</version>
+</dependency>
+
         
         <!-- WebFlux (for WebClient support) -->
 <dependency>
